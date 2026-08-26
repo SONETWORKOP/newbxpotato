@@ -74,7 +74,7 @@ vec4 nlRefl(
         // RTX-style mirror reflection (ref: block reflection V3) - reflect
         // sky + clouds clearly. Cloud contribution is strong but balanced so
         // the reflection reads like a clean mirror, not a white wash.
-        vec4 cloudRefl = nlCloudAuroraReflection(skycol, env, reflDir, wPos, CAMERA_POS, t);
+        vec4 cloudRefl = nlCloudAuroraReflection(skycol, env, reflDir, wPos, CAMERA_POS, t, 1.0);
         wetRefl.rgb = mix(wetRefl.rgb, cloudRefl.rgb, cloudRefl.a*0.6);
 
         // torch light

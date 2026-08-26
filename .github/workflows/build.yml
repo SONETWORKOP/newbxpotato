@@ -11,7 +11,9 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Windows runner: the merged profile compiles HLSL (Direct3D_SM50) as well
+    # as ESSL/Metal, and the HLSL backend of shaderc only runs on Windows.
+    runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,14 +29,14 @@ jobs:
       - name: Setup build tool
         run: python tool setup
 
-      - name: Build Android pack
-        run: python tool pack -p android
+      - name: Build merged pack
+        run: python tool pack -p merged
 
-      - name: Upload Android pack
+      - name: Upload merged pack
         uses: actions/upload-artifact@v4
         with:
-          name: newbxpotato-android
-          path: build/*-android.mcpack
+          name: newbxpotato-merged
+          path: build/*-merged.mcpack
           if-no-files-found: error
 
   release:
@@ -47,7 +49,7 @@ jobs:
       - name: Download built pack
         uses: actions/download-artifact@v4
         with:
-          name: newbxpotato-android
+          name: newbxpotato-merged
           path: release
 
       - name: Publish release asset

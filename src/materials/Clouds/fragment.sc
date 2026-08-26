@@ -35,7 +35,7 @@ void main() {
       #endif
 
       color.a *= v_color0.a;
-    #else
+    #elif NL_CLOUD_TYPE == 3
       vDir.xz *= 0.3 + v_color0.w; // height parallax
 
       vec2 p = (vDir.xz)/(0.015 + 0.035*abs(vDir.y));
@@ -50,6 +50,12 @@ void main() {
       #endif
 
       color.a *= smoothstep(0.0, 0.7, vDir.y);
+    #else
+      // NL_CLOUD_TYPE 4 - rounded cellular "old vanilla box" clouds
+      color = renderOldClouds(
+        vDir, CameraPosition.xz, v_color2.w, v_color1.w, v_color2.rgb
+      );
+      color.a *= v_color0.w;
     #endif
 
     color.rgb = colorCorrection(color.rgb);

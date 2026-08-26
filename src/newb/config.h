@@ -92,6 +92,10 @@
 #define NL_WATER_BUMP 0.28              // stronger ripples -> sharper reflection detail
 #define NL_WATER_WAVE_SPEED  0.6        // calmer, more natural wave motion
 #define NL_WATER_TEX_OPACITY 0.18       // let reflections read through more than texture
+#define NL_WATER_CLOUD_MIRROR 0.42      // per-pixel cloud mirror on water (1.0 = full)
+#define NL_WATER_CLOUD_HEIGHT 192.0     // cloud height used by plane cloud samplers
+#define NL_WATER_CLOUD_REFLECTION_DEPTH 2.0 // clouds appear this many blocks below the surface
+#define NL_WATER_CLOUD_REFL_RIPPLE 0.012 // very subtle swell drift (0.0 = dead-flat mirror)
 #define NL_WATER_WAVE
 //#define NL_WATER_REFL_MASK             // OFF: full reflection instead of patchy masked reflection
 #define NL_WATER_TINT vec3(0.28,0.7,0.88)  // slightly deeper, more natural blue-green
@@ -104,7 +108,15 @@
 #define NL_UNDERWATER_TINT vec3(0.8,0.95,1.0)
 
 /* Custom cloud renderer - always default, no cloud subpack required */
-#define NL_CLOUD_TYPE 1            // 1=lightweight custom puffy clouds
+#define NL_CLOUD_TYPE 4            // 4=custom rounded cellular puffy clouds (default)
+
+/* Sky-dome procedural clouds - extra cloud layer drawn on the sky itself.
+   OFF by default: type 4 clouds already fill the sky and the dome pass costs
+   an extra cellular lookup on every sky and water-reflection pixel. */
+//#define NL_SKY_CLOUDS
+#define NL_SKY_CLOUD_SPEED 0.09    // drift speed (cell units/sec) - sky and water reflection
+#define NL_SKY_CLOUD_DIR vec2(1.0, 0.35) // wind direction the dome clouds drift along
+#define NL_SKY_CLOUD_OPACITY 0.9   // max cloud opacity
 
 /* Soft cloud */
 #define NL_CLOUD1_SCALE vec2(0.011, 0.015)
@@ -118,7 +130,6 @@
 #define NL_CLOUD0_RAIN_THICKNESS 4.0
 #define NL_CLOUD0_OPACITY 0.9
 #define NL_CLOUD0_MULTILAYER
-
 /* Rounded cloud */
 #define NL_CLOUD2_THICKNESS 2.1
 #define NL_CLOUD2_RAIN_THICKNESS 2.5
@@ -142,13 +153,16 @@
 #define NL_CLOUD3_SHADOW 0.9
 #define NL_CLOUD3_SHADOW_OFFSET 0.3
 
-/* Aurora */
-#define NL_AURORA 0.85             // visible aurora without night-sky overbrightening
+/* Aurora - night sky aurora borealis */
+#define NL_AURORA 0.85             // procedural aurora (cloud layer + reflections)
+#define NL_AURORA_TEX 1.0          // texture-based volumetric sky aurora (night only)
 #define NL_AURORA_VELOCITY 0.03
 #define NL_AURORA_SCALE 0.04
 #define NL_AURORA_WIDTH 0.18
-#define NL_AURORA_COL1 vec3(0.08,0.62,0.34)  // downloaded aurora palette, lower band
-#define NL_AURORA_COL2 vec3(0.18,0.95,0.72)  // downloaded aurora palette, upper band
+#define NL_AURORA_COL1 vec3(0.08,0.62,0.34)  // green band, lower layer
+#define NL_AURORA_COL2 vec3(0.18,0.95,0.72)  // green-cyan band, upper layer
+#define NL_AURORA_TEX_COL1 vec3(0.65,0.48,1.05) // texture aurora: violet base layers
+#define NL_AURORA_TEX_COL2 vec3(0.0,4.5,3.0)    // texture aurora: bright green-cyan curtain
 #define NL_CLOUD_AURORA_REFLECTION
 
 /* Shooting star */
@@ -227,10 +241,12 @@
 #ifdef NO_WAVE_NO_FOG
   #define NO_WAVE
   #define NO_FOG
+  #define NL_NO_WATER_CLOUD_REFL
 #endif
 
 #ifdef NO_FOG
   #undef NL_FOG
+  #define NL_NO_WATER_CLOUD_REFL
 #endif
 
 #ifdef NO_WAVE
@@ -239,28 +255,11 @@
   #undef NL_UNDERWATER_WAVE
   #undef NL_WATER_WAVE
   #undef NL_RAIN_MIST_OPACITY
+  #define NL_NO_WATER_CLOUD_REFL
 #endif
 
 #ifdef CHUNK_ANIM
   #define NL_CHUNK_LOAD_ANIM 100.0
-#endif
-
-#ifdef ROUNDED_CLOUDS
-  #undef NL_CLOUD_TYPE
-  #define NL_CLOUD_TYPE 2
-  #undef NL_CLOUD_SHADOW
-#endif
-
-#ifdef BOX_CLOUDS
-  #undef NL_CLOUD_TYPE
-  #define NL_CLOUD_TYPE 0
-  #undef NL_CLOUD_SHADOW
-#endif
-
-#ifdef REALISTIC_CLOUDS
-  #undef NL_CLOUD_TYPE
-  #define NL_CLOUD_TYPE 3
-  #undef NL_CLOUD_SHADOW
 #endif
 
 #endif

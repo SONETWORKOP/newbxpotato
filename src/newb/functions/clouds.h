@@ -47,6 +47,115 @@ float nlHash13(vec3 p) {
   return fract((p.x + p.y) * p.z);
 }
 
+// Rounded cellular clouds adapted from the reference cloud code - used by the
+// default (box/old vanilla) cloud pass.
+float nlOldCloudHash(vec2 p) {
+  return fract(cos(p.x + p.y*332.0)*335.552);
+}
+
+vec4 renderOldClouds(
+    vec3 viewDir, vec2 cameraPos, highp float time, float rain, vec3 horizonCol
+) {
+  float invY = 0.8/max(viewDir.y,0.025);
+  vec2 uv = viewDir.xz*invY+cameraPos*0.0025;
+  float drift = -time*0.07;
+
+  uv *= vec2(5.0,10.0);
+  float minDist = 1.0;
+  float shadeDist = 1.0;
+  for (int i=0; i<3; i++) {
+    uv /= 1.007;
+    vec2 localUV = fract(uv+drift);
+    vec2 baseCell = floor(uv+drift);
+
+    for (int dx=0; dx<=1; dx++) {
+      for (int dy=0; dy<=1; dy++) {
+        vec2 offset = vec2(float(dx),float(dy));
+        float occupied = step(0.85,nlOldCloudHash(baseCell+offset));
+        vec2 local = localUV-offset;
+
+        vec2 q = abs(local)-vec2_splat(0.5);
+        float d = length(max(q,0.0))+min(max(q.x,q.y),0.0)-0.22;
+        minDist = min(minDist,mix(1.0,d,occupied));
+
+        vec2 shadeLocal = local-vec2(0.0,0.10);
+        vec2 shadeQ = abs(shadeLocal)-vec2(0.54,0.41);
+        float shadeD = length(max(shadeQ,0.0))+min(max(shadeQ.x,shadeQ.y),0.0)-0.16;
+        shadeDist = min(shadeDist,mix(1.0,shadeD,occupied));
+      }
+    }
+  }
+
+  float alpha = smoothstep(0.03,-0.03,minDist);
+  float shade = smoothstep(0.22,-0.22,shadeDist);
+  alpha = clamp(alpha-shade*alpha*0.25,0.0,1.0);
+  alpha *= smoothstep(0.05,0.35,viewDir.y);
+
+  vec3 shadowCol = mix(horizonCol*0.55,vec3(0.48,0.55,0.7),0.4);
+  vec3 color = mix(vec3_splat(1.0),shadowCol,0.3*shade);
+  color *= 1.0-0.6*rain;
+  return vec4(color,alpha);
+}
+
+/* ---- Sky-dome procedural clouds ----
+   Shared by the Sky material and the water cloud reflection so both stages
+   draw the exact same cloud shapes. */
+float nlVibrantCloudNoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f*f*(3.0-2.0*f);
+  return mix(mix(nlOldCloudHash(i),          nlOldCloudHash(i+vec2(1.0,0.0)), f.x),
+             mix(nlOldCloudHash(i+vec2(0.0,1.0)), nlOldCloudHash(i+vec2(1.0,1.0)), f.x), f.y);
+}
+
+// uv = viewDir.xz*0.8/viewDir.y (sky-dome projection), px = antialias width
+float nlVibrantClouds(vec2 uv, float px, highp float time) {
+  // directional wind drift in cell units - the same space renderOldClouds
+  // drifts in, so the clouds travel along a real wind direction.
+  vec2 drift = -time*NL_SKY_CLOUD_SPEED*NL_SKY_CLOUD_DIR;
+
+  uv *= 11.0;
+  uv.y *= 2.0;
+
+  float minDist = 1.0;
+  float shadeDist = 1.0;
+
+  for (int i=0; i<2; i++) {
+    uv /= 1.005;
+    vec2 localUV = fract(uv+drift)-0.5;
+    vec2 baseCell = floor(uv+drift);
+    vec2 cellOffset = vec2(localUV.x > 0.0 ? 0.0 : -1.0,
+                           localUV.y > 0.0 ? 0.0 : -1.0);
+
+    for (int dx=0; dx<=1; dx++) {
+      for (int dy=0; dy<=1; dy++) {
+        vec2 offset = cellOffset+vec2(float(dx),float(dy));
+        float occupied = step(0.7, nlVibrantCloudNoise((baseCell+offset)/2.8));
+        vec2 local = localUV-offset;
+
+        vec2 q = abs(local)-vec2_splat(0.5);
+        float d = length(max(q,0.0))+min(max(q.x,q.y),0.0)-0.22;
+        minDist = min(minDist, mix(1.0,d,occupied));
+
+        vec2 shadeLocal = local-vec2(0.01,0.01);
+        vec2 shadeQ = abs(shadeLocal)-vec2_splat(0.39);
+        float shadeD = length(max(shadeQ,0.0))+min(max(shadeQ.x,shadeQ.y),0.0)-0.16;
+        shadeDist = min(shadeDist, mix(1.0,shadeD,occupied));
+      }
+    }
+  }
+
+  float alpha = smoothstep(px,-px,minDist);
+  float shade = smoothstep(px*8.0,-px*8.0,shadeDist);
+  return clamp(alpha-shade*alpha*0.15, 0.0, 1.0);
+}
+
+// sunTint comes from sunLightTint() (lighting.h is included after this header)
+vec3 nlVibrantCloudColor(float dayFactor, vec3 sunTint) {
+  vec3 col = vec3_splat(1.1)*mix(0.35, 1.0, clamp(dayFactor+0.25, 0.0, 1.0));
+  return col*(0.7+0.5*sunTint);
+}
+
 // Lightweight puffy value noise based on the downloaded cloud.txt hash style.
 // Three octaves retain the soft pixelated cloud character while avoiding the
 // fourth octave on every cloud and reflection pixel.
@@ -128,7 +237,7 @@ vec4 renderCloudsSimple(nl_skycolor skycol, vec3 pos, highp float t, float rain,
 
   // slight extra saturation push so clouds don't wash out flat white
   float cloudLum = dot(col.rgb, vec3(0.299, 0.587, 0.114));
-  col.rgb = mix(vec3(cloudLum), col.rgb, 1.15);
+  col.rgb = mix(vec3_splat(cloudLum), col.rgb, 1.15);
 
   // darken during rain
   col.rgb *= 1.0 - 0.7*rain;
@@ -264,11 +373,15 @@ vec4 renderAurora(vec3 p, float t, float rain, vec3 FOG_COLOR) {
 }
 #endif
 
-vec4 nlCloudAuroraReflection(nl_skycolor skycol, nl_environment env, vec3 viewDir, vec3 wPos, vec3 CAMERA_POS, highp float t) {
+vec4 nlCloudAuroraReflection(nl_skycolor skycol, nl_environment env, vec3 viewDir, vec3 wPos, vec3 CAMERA_POS, highp float t, float cloudAmount) {
   vec2 cloudPos = wPos.xz;
-  float viewDirY = viewDir.y >= 0.0 ? max(viewDir.y, 0.025) : min(viewDir.y, -0.025);
-  cloudPos += (187.0-(wPos.y+CAMERA_POS.y))*viewDir.xz/viewDirY;
-  cloudPos = clamp(cloudPos, -vec2_splat(4096.0), vec2_splat(4096.0));
+  float viewDirY = viewDir.y >= 0.0 ? max(viewDir.y, 0.01) : min(viewDir.y, -0.01);
+  float surfaceY = wPos.y + CAMERA_POS.y;
+  // renderCloudsSimple / renderAurora are plane samplers, so project the
+  // reflected ray onto the real cloud layer. A tiny fixed depth collapses the
+  // projection and kills all parallax.
+  vec2 projectionOffset = (NL_WATER_CLOUD_HEIGHT-surfaceY)*viewDir.xz/viewDirY;
+  cloudPos += clamp(projectionOffset, -vec2_splat(4096.0), vec2_splat(4096.0));
   float fade = clamp(2.0 - 0.005*length(cloudPos), 0.0, 1.0);
   cloudPos += CAMERA_POS.xz;
 
@@ -281,15 +394,16 @@ vec4 nlCloudAuroraReflection(nl_skycolor skycol, nl_environment env, vec3 viewDi
   #endif
 
   // Cloud reflection always uses the lightweight Simple cloud algorithm,
-  // regardless of which cloud subpack (Simple/Vanilla/Rounded/Box) is active
-  // for the main sky. This keeps reflections cheap and working in all cases -
-  // previously this was gated to NL_CLOUD_TYPE == 1 only, so reflections
-  // silently disappeared on blocks/water whenever a different cloud subpack
-  // was selected.
-  vec3 mainSunDir = env.sunDir.y > 0.0 ? env.sunDir : env.moonDir;
-  vec4 clouds = renderCloudsSimple(skycol, cloudPos.xyy, t, env.rainFactor, viewDir, mainSunDir, vec3(1.0,0.95,0.85));
-  clouds.a *= fade;
-  refl = vec4(mix(refl.rgb, clouds.rgb, clouds.a), min(refl.a + clouds.a, 1.0));
+  // regardless of which cloud renderer is active for the main sky. This keeps
+  // reflections cheap and working in all cases.
+  // cloudAmount = 0.0 lets a caller take only the aurora layer (water uses its
+  // own per-pixel cloud mirror so it must not draw a second cloud shape here).
+  if (cloudAmount > 0.0) {
+    vec3 mainSunDir = env.sunDir.y > 0.0 ? env.sunDir : env.moonDir;
+    vec4 clouds = renderCloudsSimple(skycol, cloudPos.xyy, t, env.rainFactor, viewDir, mainSunDir, vec3(1.0,0.95,0.85));
+    clouds.a *= fade*cloudAmount;
+    refl = vec4(mix(refl.rgb, clouds.rgb, clouds.a), min(refl.a + clouds.a, 1.0));
+  }
 
   return refl;
 }

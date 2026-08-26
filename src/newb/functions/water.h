@@ -31,7 +31,9 @@ vec4 nlWater(
     }*/
   } else { // reflection for side plane
     bump *= 0.5 + 0.5*sin(3.0*t*NL_WATER_WAVE_SPEED + cPos.y*PI_HALF);
-    nrm.xz = normalize(viewDir.xz) + bump.y*(1.0-viewDir.xz*viewDir.xz)*NL_WATER_BUMP;
+    float viewDirXZLengthSq = dot(viewDir.xz, viewDir.xz);
+    vec2 sideDir = viewDirXZLengthSq > 0.000001 ? viewDir.xz/sqrt(viewDirXZLengthSq) : vec2(1.0,0.0);
+    nrm.xz = sideDir + bump.y*(1.0-viewDir.xz*viewDir.xz)*NL_WATER_BUMP;
     nrm.y = bump.x*NL_WATER_BUMP;
   }
   nrm = normalize(nrm);
@@ -43,7 +45,16 @@ vec4 nlWater(
 
   #if defined(NL_CLOUD_AURORA_REFLECTION)
     if (reflDir.y < 0.0) {
-      vec4 cloudRefl = nlCloudAuroraReflection(skycol, env, reflDir, wPos, CAMERA_POS, t);
+      // Clouds themselves are mirrored per-pixel in the RenderChunk fragment
+      // stage (waterCloudReflection), which matches the sky shapes exactly.
+      // Only take the aurora layer here so two different cloud shapes don't
+      // stack on the water surface.
+      #ifdef NL_NO_WATER_CLOUD_REFL
+        float vertexCloudAmount = 1.0;
+      #else
+        float vertexCloudAmount = 0.0;
+      #endif
+      vec4 cloudRefl = nlCloudAuroraReflection(skycol, env, reflDir, wPos, CAMERA_POS, t, vertexCloudAmount);
       waterRefl = mix(waterRefl, cloudRefl.rgb, cloudRefl.a);
     }
   #endif
@@ -55,7 +66,9 @@ vec4 nlWater(
   // sharp sun specular highlight (lightweight Blinn-Phong, avoids full BRDF cost)
   #if defined(NL_SUNLIGHT_INTENSITY)
     vec3 sunDir = env.sunDir.y > 0.0 ? env.sunDir : env.moonDir;
-    vec3 halfDir = normalize(sunDir + viewDir);
+    vec3 halfVector = sunDir + viewDir;
+    float halfLengthSq = dot(halfVector, halfVector);
+    vec3 halfDir = halfLengthSq > 0.000001 ? halfVector/sqrt(halfLengthSq) : nrm;
     float specAngle = max(dot(nrm, halfDir), 0.0);
     float specHighlight = pow(specAngle, 256.0)*lit.y;
     waterRefl += specHighlight*NL_SUNLIGHT_INTENSITY*sunLightTint(env.dayFactor, env.rainFactor);
