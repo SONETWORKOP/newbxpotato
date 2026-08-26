@@ -1,0 +1,8 @@
+build/
+tool/lib/
+tool/data/
+__pycache__/
+*.pyc
+*.log
+craftedge-src.zip
+site/

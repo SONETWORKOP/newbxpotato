@@ -1,0 +1,66 @@
+name = "Newbxpotato"
+version = [1, 0, 1]
+min_supported_mc_version = [1, 26, 30]
+description = '''
+§c%w
+§7- Lightweight custom clouds, aurora, waves and reflections!
+%v
+§3Newbxpotato
+''' # %w = patch warning, %v = version
+authors = ["Shivam"]
+url = ""
+uuid = "27b48602-932b-4de3-8dec-fa521e29d300" # Newbxpotato pack UUID
+materials = ["Sky", "RenderChunk", "Actor", "ActorGlint", "EndSky", "Clouds", "SunMoon", "Weather", "ItemInHandTextured", "ItemInHandColor", "ItemInHandColorGlint", "Stars"]
+
+[info] 
+copyright = '''
+Copyright © 2026 %a
+
+"Newbxpotato" is a lightweight variant of "Newb Shader" (source: https://github.com/devendrn/newb-x-mcbe, MIT License), modified and recompiled under the terms of the MIT License.
+
+This compiled resource pack is licensed under CC BY-ND 4.0 (https://creativecommons.org/licenses/by-nd/4.0/). Redistribute only unmodified copies with proper attribution to "Newbxpotato" and the original "Newb Shader" project. Do not distribute derivatives of this compiled pack.
+
+You can compile the shader from source and distribute the result under your own terms (compatible with the MIT License).
+''' # %a = authors
+credits = '''
+Newbxpotato is based on Newb Shader by devendrn (https://github.com/devendrn/newb-x-mcbe)
+'''
+
+# subpacks are arranged in left to right order
+# right-most subpack is enabled by default
+# cloud subpacks are intentionally absent: custom clouds are always default
+
+[[subpack]]
+define = "CHUNK_ANIM"
+materials = ["RenderChunk"]
+description = '''
+Chunk loading animation
+'''
+
+[[subpack]]
+define = "NO_WAVE_NO_FOG"
+materials = ["RenderChunk"]
+description = '''
+No fog and wave effects
+'''
+
+[[subpack]]
+define = "NO_FOG"
+materials = ["RenderChunk"]
+description = '''
+No fog effect
+'''
+
+[[subpack]]
+define = "NO_WAVE"
+materials = ["RenderChunk"]
+description = '''
+No wave effects
+'''
+
+[[subpack]]
+define = "DEFAULT"
+materials = []
+description = '''
+Default
+'''
