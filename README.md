@@ -16,13 +16,14 @@ performance without falling back to a flat vanilla look.
 
 ## Build
 
-The GitHub Actions workflow builds a merged `.mcpack` on every push to `main`.
+The GitHub Actions workflow builds an Android/MB Loader `.mcpack` on every push
+to `main`.
 For a local build:
 
 ```bash
 python -m pip install -r requirements.txt
 python tool setup
-python tool pack -p merged
+python tool pack -p android
 ```
 
 The finished pack is written to `build/`.

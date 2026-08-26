@@ -27,14 +27,14 @@ jobs:
       - name: Setup build tool
         run: python tool setup
 
-      - name: Build merged pack
-        run: python tool pack -p merged
+      - name: Build Android pack
+        run: python tool pack -p android
 
-      - name: Upload merged pack
+      - name: Upload Android pack
         uses: actions/upload-artifact@v4
         with:
-          name: newbxpotato-merged
-          path: build/*-merged.mcpack
+          name: newbxpotato-android
+          path: build/*-android.mcpack
           if-no-files-found: error
 
   release:
@@ -47,7 +47,7 @@ jobs:
       - name: Download built pack
         uses: actions/download-artifact@v4
         with:
-          name: newbxpotato-merged
+          name: newbxpotato-android
           path: release
 
       - name: Publish release asset

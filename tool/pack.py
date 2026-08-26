@@ -130,7 +130,7 @@ def run(args):
             console.print("[yellow]Ignoring invalid version number '" + args.v + "' specified using -v")
 
     pack_name: str = pack_config['name']
-    pack_version = f"{pack_config['version'][1]}.{pack_config['version'][2]}"
+    pack_version = ".".join(str(component) for component in pack_config['version'])
     pack_authors = ', '.join(pack_config['authors'])
     profile: str = args.p
 
@@ -142,8 +142,7 @@ def run(args):
     console.print("~ Build target", style="bold")
     console.print("  [dim]profile :", "[cyan]" + args.p)
 
-    pack_acr_name = "".join(filter(str.isupper, pack_name)).lower()
-    pack_acr_name = f"{pack_acr_name}-{pack_version}-{profile}"
+    pack_acr_name = f"newbxpotato-{pack_version}-{profile}"
     pack_dir = os.path.join('build', 'pack-' + args.p)
     mats_dir = os.path.join(pack_dir, 'renderer', 'materials')
 
