@@ -51,9 +51,10 @@ void main() {
 
       color.a *= smoothstep(0.0, 0.7, vDir.y);
     #else
-      // NL_CLOUD_TYPE 4 - rounded cellular "old vanilla box" clouds
-      color = renderOldClouds(
-        vDir, CameraPosition.xz, v_color2.w, v_color1.w, v_color2.rgb
+      // NL_CLOUD_TYPE 4 - pixel clouds (reference "pixelated" algorithm)
+      // v_color1: .x = dayFactor, .w = rain
+      color = renderPixelClouds(
+        vDir, CameraPosition.xz, v_color2.w, v_color1.w, v_color1.x, v_color2.rgb
       );
       color.a *= v_color0.w;
     #endif

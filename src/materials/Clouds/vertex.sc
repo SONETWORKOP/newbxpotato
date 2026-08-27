@@ -133,8 +133,14 @@ void main() {
 
     v_fogColor = FogColor.rgb;
     v_color0 = vec4(worldPos, h*h);
-    v_color1 = vec4(skycol.zenith, rain);
     v_color2 = vec4(skycol.horizonEdge, ViewPositionAndTime.w);
+    #if NL_CLOUD_TYPE == 4
+      // pixel clouds shade themselves from dayFactor and never read the
+      // zenith color, so that slot carries the sun height instead
+      v_color1 = vec4(env.dayFactor, 0.0, 0.0, rain);
+    #else
+      v_color1 = vec4(skycol.zenith, rain);
+    #endif
     gl_Position = apos;
   #endif
 }

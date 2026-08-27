@@ -14,28 +14,26 @@ uniform vec4 FogColor;
 /*
   Water cloud mirror.
 
-  The sky renders its clouds as a dome that is sampled purely by view
-  direction, so a true mirror only needs the *reflected direction* - not a
-  projection onto a cloud plane. Sampling by direction keeps the reflected
-  clouds matching the sky exactly at any camera height and distance.
+  The Clouds material projects its pixel lattice with p.xz*0.8/p.y, i.e. purely
+  by direction. A true mirror therefore only needs the *reflected direction* -
+  no projection onto a cloud plane. Sampling by direction keeps the reflected
+  clouds matching the sky at any camera height and any distance.
 */
 vec4 waterCloudReflection(
   vec3 surfacePos, vec3 viewDir, float rain, float dayFactor, vec3 horizonCol, highp float t
 ) {
   vec3 V = normalize(viewDir);
 
-  // Flat mirror. Perturbing the normal before reflect() looks correct on
-  // paper but the dome projection below divides by reflDir.y, so a tiny tilt
-  // near the horizon is amplified by ~1/y^2 - that tears the reflected clouds
-  // into warping blobs. A flat normal keeps shapes identical to the sky.
+  // Flat mirror. Perturbing the normal before reflect() looks correct on paper
+  // but the plane projection divides by reflDir.y, so a tiny tilt near the
+  // horizon is amplified by ~1/y^2 and tears the clouds into warping blobs.
   vec3 reflDir = vec3(-V.x, V.y, -V.z);
   // below the horizon there is no sky to mirror (also true when underwater,
   // where the reflected ray points down)
   if (reflDir.y <= 0.004) return vec4_splat(0.0);
 
-  // Surface motion is applied in sky-UV space, where it is a bounded
-  // translation: the clouds drift gently like a real swell instead of
-  // stretching. Slow and low-frequency on purpose.
+  // Surface motion, applied in plane-uv space where it is a bounded
+  // translation: the reflection drifts like a slow swell instead of stretching.
   vec2 wobble = vec2(
     sin(surfacePos.x*0.09 + 0.30*t) + sin(surfacePos.z*0.06 - 0.21*t),
     cos(surfacePos.z*0.08 + 0.26*t) + cos(surfacePos.x*0.05 - 0.18*t)
@@ -43,32 +41,21 @@ vec4 waterCloudReflection(
   wobble *= 0.5*NL_WATER_CLOUD_REFL_RIPPLE;
 
   // Depth cue: shift the sampled cloud image sideways as if the mirror sat
-  // NL_WATER_CLOUD_REFLECTION_DEPTH blocks below the surface. This is a
-  // translation, never a scale, so the reflected clouds keep the exact same
-  // size as the sky ones. Clamped so it can't blow up near the horizon.
+  // NL_WATER_CLOUD_REFLECTION_DEPTH blocks below the surface. A translation,
+  // never a scale, so reflected clouds keep the same size as the real ones.
   vec2 depthShift = clamp(
     NL_WATER_CLOUD_REFLECTION_DEPTH*reflDir.xz/max(reflDir.y, 0.08),
     -vec2_splat(64.0), vec2_splat(64.0)
   );
 
-  vec4 clouds;
-  #ifdef NL_SKY_CLOUDS
-    // sky-dome clouds are camera-locked, so mirror them the same way
-    float domeScale = 0.8/max(reflDir.y, 0.045);
-    vec2 domeUV = reflDir.xz*domeScale + depthShift*0.0025 + wobble;
-    float mask = nlVibrantClouds(domeUV, 0.004*domeScale, t);
-    mask *= smoothstep(0.05, 0.35, reflDir.y)*NL_SKY_CLOUD_OPACITY;
-    clouds = vec4(nlVibrantCloudColor(dayFactor, sunLightTint(dayFactor, rain)), mask);
-  #else
-    // renderOldClouds builds uv as dir.xz*(0.8/dir.y), so pre-multiplying the
-    // wobble by dir.y/0.8 makes it land as an exact, angle-independent uv
-    // offset - no stretching at grazing angles.
-    vec3 sampleDir = reflDir;
-    sampleDir.xz += wobble*max(reflDir.y, 0.025)/0.8;
-    // same sampler and same camera offset the Clouds material uses, so the
-    // mirrored shapes line up 1:1 with the sky
-    clouds = renderOldClouds(sampleDir, CameraPosition.xz + depthShift, t, rain, horizonCol);
-  #endif
+  // renderPixelClouds builds uv as dir.xz*(0.8/dir.y), so pre-multiplying the
+  // wobble by dir.y/0.8 lands it as an exact, angle-independent uv offset.
+  vec3 sampleDir = reflDir;
+  sampleDir.xz += wobble*max(reflDir.y, 0.025)/0.8;
+
+  vec4 clouds = renderPixelClouds(
+    sampleDir, CameraPosition.xz + depthShift, t, rain, dayFactor, horizonCol
+  );
 
   // water is more mirror-like at grazing angles
   float fresnel = calculateFresnel(V.y, 0.02);

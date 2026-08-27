@@ -40,125 +40,80 @@ float cloudNoise2D(vec2 p, highp float t, float rain) {
   return n*n;
 }
 
-// hash13 - ported from reference clouds.txt (puffy cellular clouds)
+/* ---- Pixel clouds ----
+   Direct implementation of the reference "pixelated" cloud shader:
+
+     hash(p)      = fract(cos(p.x + p.y*332.0) * 335.552)
+     pixelated(uv): uv *= 5.0; 10 iterations of { uv /= 1.007;
+                    a = mix(a, 1.0, step(0.7, hash(floor(uv + t)))) }
+                    then subtract 0.3 * the last cell's step value
+
+   The lattice is sampled with floor(), so the clouds keep their blocky
+   pixel-art silhouette. Each iteration shrinks the lattice slightly, which
+   stacks 10 offset copies of the same cell grid into layered blobs.
+   NL_PIXEL_CLOUD_STEPS trades iterations for GPU time (10 = reference).
+*/
+float nlPixelCloudHash(highp vec2 p) {
+  return fract(cos(p.x + p.y*332.0)*335.552);
+}
+
+// returns .x = cloud coverage, .y = top-layer mask (used for shading)
+vec2 nlPixelCloudLayers(vec2 uv, highp float t) {
+  float drift = -t*NL_PIXEL_CLOUD_SPEED;
+
+  uv *= NL_PIXEL_CLOUD_SCALE;
+
+  float a = 0.0;
+  for (int i = 0; i < NL_PIXEL_CLOUD_STEPS; i++) {
+    uv /= 1.007;
+    float c = step(NL_PIXEL_CLOUD_COVERAGE, nlPixelCloudHash(floor(uv + drift)));
+    a = mix(a, 1.0, c);
+  }
+
+  // the reference darkens the final layer against the stack, which is what
+  // gives the clouds their internal shading instead of a flat white mass
+  float b = step(NL_PIXEL_CLOUD_COVERAGE, nlPixelCloudHash(floor(uv + drift)));
+
+  return vec2(clamp(a - b*0.3, 0.0, 1.0), b);
+}
+
+// Cloud color. Sunlit tops stay bright, the shaded layer picks up the horizon
+// tint so clouds sit in the sky instead of floating on top of it.
+vec3 nlPixelCloudColor(float shade, float dayFactor, float rain, vec3 horizonCol) {
+  vec3 lit = mix(NL_PIXEL_CLOUD_NIGHT_COL, NL_PIXEL_CLOUD_DAY_COL,
+                 smoothstep(-0.1, 0.35, dayFactor));
+  vec3 shadowCol = mix(lit*0.42, horizonCol, 0.45);
+  vec3 col = mix(lit, shadowCol, shade*NL_PIXEL_CLOUD_SHADING);
+  return col*(1.0 - 0.55*rain);
+}
+
+// viewDir must be normalized. Projects the view ray onto the cloud plane the
+// same way the reference does (p.xz * 0.8 / p.y) and adds world offset so the
+// clouds stay fixed in the world while the player moves.
+vec4 renderPixelClouds(
+    vec3 viewDir, vec2 cameraPos, highp float t, float rain, float dayFactor, vec3 horizonCol
+) {
+  float invY = 0.8/max(viewDir.y, 0.025);
+  vec2 uv = viewDir.xz*invY + cameraPos*NL_PIXEL_CLOUD_WORLD_SCALE;
+
+  vec2 layers = nlPixelCloudLayers(uv, t);
+
+  // reference fade: smoothstep(0.2, 0.9, p.y) - keeps the horizon clear so the
+  // pixel lattice never smears into an aliased band
+  float alpha = layers.x*smoothstep(0.06, 0.42, viewDir.y);
+  alpha *= NL_PIXEL_CLOUD_OPACITY*(1.0 - 0.25*rain);
+
+  return vec4(nlPixelCloudColor(layers.y, dayFactor, rain, horizonCol), clamp(alpha, 0.0, 1.0));
+}
+
+// hash13 - 3D hash for the soft fBm cloud/reflection noise
 float nlHash13(vec3 p) {
   p = fract(p * 0.1031);
   p += dot(p, p.yzx + 33.33);
   return fract((p.x + p.y) * p.z);
 }
 
-// Rounded cellular clouds adapted from the reference cloud code - used by the
-// default (box/old vanilla) cloud pass.
-float nlOldCloudHash(vec2 p) {
-  return fract(cos(p.x + p.y*332.0)*335.552);
-}
-
-vec4 renderOldClouds(
-    vec3 viewDir, vec2 cameraPos, highp float time, float rain, vec3 horizonCol
-) {
-  float invY = 0.8/max(viewDir.y,0.025);
-  vec2 uv = viewDir.xz*invY+cameraPos*0.0025;
-  float drift = -time*0.07;
-
-  uv *= vec2(5.0,10.0);
-  float minDist = 1.0;
-  float shadeDist = 1.0;
-  for (int i=0; i<3; i++) {
-    uv /= 1.007;
-    vec2 localUV = fract(uv+drift);
-    vec2 baseCell = floor(uv+drift);
-
-    for (int dx=0; dx<=1; dx++) {
-      for (int dy=0; dy<=1; dy++) {
-        vec2 offset = vec2(float(dx),float(dy));
-        float occupied = step(0.85,nlOldCloudHash(baseCell+offset));
-        vec2 local = localUV-offset;
-
-        vec2 q = abs(local)-vec2_splat(0.5);
-        float d = length(max(q,0.0))+min(max(q.x,q.y),0.0)-0.22;
-        minDist = min(minDist,mix(1.0,d,occupied));
-
-        vec2 shadeLocal = local-vec2(0.0,0.10);
-        vec2 shadeQ = abs(shadeLocal)-vec2(0.54,0.41);
-        float shadeD = length(max(shadeQ,0.0))+min(max(shadeQ.x,shadeQ.y),0.0)-0.16;
-        shadeDist = min(shadeDist,mix(1.0,shadeD,occupied));
-      }
-    }
-  }
-
-  float alpha = smoothstep(0.03,-0.03,minDist);
-  float shade = smoothstep(0.22,-0.22,shadeDist);
-  alpha = clamp(alpha-shade*alpha*0.25,0.0,1.0);
-  alpha *= smoothstep(0.05,0.35,viewDir.y);
-
-  vec3 shadowCol = mix(horizonCol*0.55,vec3(0.48,0.55,0.7),0.4);
-  vec3 color = mix(vec3_splat(1.0),shadowCol,0.3*shade);
-  color *= 1.0-0.6*rain;
-  return vec4(color,alpha);
-}
-
-/* ---- Sky-dome procedural clouds ----
-   Shared by the Sky material and the water cloud reflection so both stages
-   draw the exact same cloud shapes. */
-float nlVibrantCloudNoise(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  f = f*f*(3.0-2.0*f);
-  return mix(mix(nlOldCloudHash(i),          nlOldCloudHash(i+vec2(1.0,0.0)), f.x),
-             mix(nlOldCloudHash(i+vec2(0.0,1.0)), nlOldCloudHash(i+vec2(1.0,1.0)), f.x), f.y);
-}
-
-// uv = viewDir.xz*0.8/viewDir.y (sky-dome projection), px = antialias width
-float nlVibrantClouds(vec2 uv, float px, highp float time) {
-  // directional wind drift in cell units - the same space renderOldClouds
-  // drifts in, so the clouds travel along a real wind direction.
-  vec2 drift = -time*NL_SKY_CLOUD_SPEED*NL_SKY_CLOUD_DIR;
-
-  uv *= 11.0;
-  uv.y *= 2.0;
-
-  float minDist = 1.0;
-  float shadeDist = 1.0;
-
-  for (int i=0; i<2; i++) {
-    uv /= 1.005;
-    vec2 localUV = fract(uv+drift)-0.5;
-    vec2 baseCell = floor(uv+drift);
-    vec2 cellOffset = vec2(localUV.x > 0.0 ? 0.0 : -1.0,
-                           localUV.y > 0.0 ? 0.0 : -1.0);
-
-    for (int dx=0; dx<=1; dx++) {
-      for (int dy=0; dy<=1; dy++) {
-        vec2 offset = cellOffset+vec2(float(dx),float(dy));
-        float occupied = step(0.7, nlVibrantCloudNoise((baseCell+offset)/2.8));
-        vec2 local = localUV-offset;
-
-        vec2 q = abs(local)-vec2_splat(0.5);
-        float d = length(max(q,0.0))+min(max(q.x,q.y),0.0)-0.22;
-        minDist = min(minDist, mix(1.0,d,occupied));
-
-        vec2 shadeLocal = local-vec2(0.01,0.01);
-        vec2 shadeQ = abs(shadeLocal)-vec2_splat(0.39);
-        float shadeD = length(max(shadeQ,0.0))+min(max(shadeQ.x,shadeQ.y),0.0)-0.16;
-        shadeDist = min(shadeDist, mix(1.0,shadeD,occupied));
-      }
-    }
-  }
-
-  float alpha = smoothstep(px,-px,minDist);
-  float shade = smoothstep(px*8.0,-px*8.0,shadeDist);
-  return clamp(alpha-shade*alpha*0.15, 0.0, 1.0);
-}
-
-// sunTint comes from sunLightTint() (lighting.h is included after this header)
-vec3 nlVibrantCloudColor(float dayFactor, vec3 sunTint) {
-  vec3 col = vec3_splat(1.1)*mix(0.35, 1.0, clamp(dayFactor+0.25, 0.0, 1.0));
-  return col*(0.7+0.5*sunTint);
-}
-
-// Lightweight puffy value noise based on the downloaded cloud.txt hash style.
-// Three octaves retain the soft pixelated cloud character while avoiding the
-// fourth octave on every cloud and reflection pixel.
+// Soft multi-octave value noise. Three octaves keep the reflection cheap.
 float cloudFbm2D(vec2 p, highp float t) {
   // slow drift + gentle sway
   p += NL_CLOUD1_SPEED*t;
@@ -197,50 +152,30 @@ float cloudDensity2D(vec2 p, highp float t, float rain) {
   return n;
 }
 
-// simple clouds - box-style crisp puffs for reflections
+// Reflection clouds. Water and wet ground mirror this instead of the pixel
+// lattice: a floor()-based lattice aliases badly once it is bent through a
+// rippling normal, so the mirror uses the smooth fBm shape at matching scale.
 vec4 renderCloudsSimple(nl_skycolor skycol, vec3 pos, highp float t, float rain, vec3 viewDir, vec3 sunDir, vec3 sunCol) {
   pos.xz *= NL_CLOUD1_SCALE;
   float d = cloudDensity2D(pos.xz, t, rain);
-  // crisp step so reflected clouds match the vanilla Box cloud look
-  d = smoothstep(0.08, 0.5, d);
+  d = smoothstep(0.10, 0.46, d);
 
-  // vibrant cloud base - brighter, punchier white with a touch more contrast
-  vec3 cloudWhite = vec3(1.0, 1.0, 1.02);
-  vec3 cloudShadow = mix(skycol.horizon * 0.5, vec3(0.42, 0.5, 0.68), 0.45);
-  vec3 cloudBase = mix(cloudShadow, cloudWhite, smoothstep(0.0, 0.6, d));
+  vec3 lit = mix(NL_PIXEL_CLOUD_NIGHT_COL, NL_PIXEL_CLOUD_DAY_COL,
+                 smoothstep(-0.1, 0.35, sunDir.y));
+  vec3 shadowCol = mix(lit*0.42, skycol.horizon, 0.45);
+  vec3 cloudBase = mix(shadowCol, lit, smoothstep(0.0, 0.62, d));
 
-  // box-style crisp puffy edges
-  vec4 col = vec4(cloudBase, smoothstep(0.05, 0.55, d));
+  vec4 col = vec4(cloudBase, smoothstep(0.06, 0.5, d));
 
-  // stronger brightness ramp on thick/tall cloud cores for a puffier, more
-  // voluminous look instead of a flat wash of white
-  float brightness = smoothstep(0.2, 0.7, d);
-  col.rgb += brightness * vec3(0.25, 0.22, 0.16);
+  // thick cores read brighter than thin wisps
+  col.rgb += smoothstep(0.25, 0.75, d)*vec3(0.16, 0.15, 0.12);
 
-  // deeper bottom shadow for stronger volumetric contrast (vibrant look
-  // leans into punchy light/dark separation rather than soft grey)
-  float bottomShadow = smoothstep(0.0, 0.5, d) * 0.3;
-  col.rgb -= vec3(0.14, 0.16, 0.19) * (1.0 - bottomShadow);
+  // forward scattering towards the sun/moon keeps the mirror consistent with
+  // the sky brightness at low sun angles
+  float mu = dot(viewDir, sunDir);
+  col.rgb += pow(max(mu, 0.0), 5.0)*sunCol*0.7*col.a;
 
-  // forward-scattering: brighten clouds facing the sun
-  float mu = dot(normalize(viewDir), normalize(sunDir));
-  float forwardScatter = pow(max(mu, 0.0), 4.0);
-  col.rgb += forwardScatter * sunCol * 1.1 * col.a;
-
-  // warm edge glow - sunlight hitting cloud edges
-  float edgeGlow = pow(max(1.0 - abs(mu), 0.0), 6.0);
-  col.rgb += edgeGlow * vec3(1.0, 0.85, 0.55) * 0.4 * col.a;
-
-  // rim light on cloud edges - sun silhouette
-  float rimLight = pow(max(1.0 + mu, 0.0), 8.0) * 0.5;
-  col.rgb += rimLight * sunCol * col.a;
-
-  // slight extra saturation push so clouds don't wash out flat white
-  float cloudLum = dot(col.rgb, vec3(0.299, 0.587, 0.114));
-  col.rgb = mix(vec3_splat(cloudLum), col.rgb, 1.15);
-
-  // darken during rain
-  col.rgb *= 1.0 - 0.7*rain;
+  col.rgb *= 1.0 - 0.55*rain;
   return col;
 }
 

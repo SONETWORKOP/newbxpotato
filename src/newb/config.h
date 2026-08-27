@@ -7,68 +7,72 @@
   Custom puffy clouds, aurora, water waves and balanced mobile rendering.
 */
 
-/* Color correction */
+/* Color correction - clean and neutral, not a filmic/BSL grade.
+   Newbxpotato aims for readable vanilla-plus color: highlights roll off but
+   midtones stay where vanilla put them, so terrain textures keep their detail. */
 #define NL_TONEMAP_TYPE 3              // Extended Reinhard - natural highlight rolloff
-#define NL_GAMMA 1.25                  // slightly punchier contrast
-#define NL_EXPOSURE 1.12               // subtle brightness lift for BSL-like pop
-#define NL_SATURATION 1.4              // vivid BSL-style saturation
+#define NL_GAMMA 1.14                  // mild contrast, keeps shadow detail readable
+#define NL_EXPOSURE 1.05               // near-neutral; brightness comes from sunlight
+#define NL_SATURATION 1.18             // gentle lift - colorful without going neon
 //#define NL_TINT                      // OFF
 #define NL_TINT_LOW  vec3(0.3,0.5,1.4)
 #define NL_TINT_HIGH vec3(1.4,0.7,0.3)
 
-/* Lighting - BSL-like strong directional light */
-#define NL_SUNLIGHT_INTENSITY   4.8    // strong BSL-style sunlight
-#define NL_TORCHLIGHT_INTENSITY 1.6    // warmer brighter torches
-#define NL_SHADOW_INTENSITY     1.6    // deeper, sharper BSL-style shadows
-#define NL_MIN_LIGHTING_BOOST   1.0    // less ambient fill = stronger shadow contrast
+/* Lighting - moderate directional light with soft ambient fill.
+   Lower sunlight + higher ambient than a BSL-style grade: shadows stay
+   visible instead of crushing to black on a phone screen in daylight. */
+#define NL_SUNLIGHT_INTENSITY   3.6    // moderate direct sun
+#define NL_TORCHLIGHT_INTENSITY 1.35   // warm but not blown-out torches
+#define NL_SHADOW_INTENSITY     1.25   // softer shadows, keeps detail in the dark
+#define NL_MIN_LIGHTING_BOOST   1.12   // a little ambient fill so caves stay readable
 //#define NL_BLINKING_TORCH
 //#define NL_CLOUD_SHADOW              // OFF: expensive noise on chunk vertices
 
 /* Ambient */
-#define NL_NETHER_AMBIENT vec3(3.0,2.16,1.89)
-#define NL_END_AMBIENT    vec3(1.98,1.25,2.3)
+#define NL_NETHER_AMBIENT vec3(2.7,1.95,1.7)
+#define NL_END_AMBIENT    vec3(1.75,1.15,2.15)
 
-/* Sun/moon - BSL-like warm directional light */
-#define NL_DAWN_SUNLIGHT_COL   vec3(1.2,0.55,0.18)   // warm orange sunrise
-#define NL_NOON_SUNLIGHT_COL   vec3(1.1,1.0,0.85)    // bright clean noon
-#define NL_NIGHT_MOONLIGHT_COL vec3(0.03,0.06,0.28)   // cool moonlight
+/* Sun/moon - warm day, purple-leaning night to match the aurora */
+#define NL_DAWN_SUNLIGHT_COL   vec3(1.14,0.60,0.26)   // soft amber sunrise
+#define NL_NOON_SUNLIGHT_COL   vec3(1.05,1.01,0.92)   // near-neutral daylight
+#define NL_NIGHT_MOONLIGHT_COL vec3(0.06,0.07,0.24)   // violet-tinted moonlight
 
 /* Torch */
-#define NL_OVERWORLD_TORCH_COL  vec3(1.0,0.55,0.2)
-#define NL_UNDERWATER_TORCH_COL vec3(1.0,0.55,0.2)
-#define NL_NETHER_TORCH_COL     vec3(1.0,0.5,0.18)
-#define NL_END_TORCH_COL        vec3(1.0,0.55,0.28)
+#define NL_OVERWORLD_TORCH_COL  vec3(1.0,0.58,0.24)
+#define NL_UNDERWATER_TORCH_COL vec3(1.0,0.6,0.3)
+#define NL_NETHER_TORCH_COL     vec3(1.0,0.52,0.2)
+#define NL_END_TORCH_COL        vec3(0.96,0.58,0.34)
 
-/* Fog - atmospheric depth */
-#define NL_FOG 1.3
-#define NL_MIST_DENSITY 0.38
-#define NL_RAIN_MIST_OPACITY 0.4
+/* Fog - light touch so render distance stays visible on mobile */
+#define NL_FOG 1.12
+#define NL_MIST_DENSITY 0.3
+#define NL_RAIN_MIST_OPACITY 0.36
 //#define NL_CLOUDY_FOG                // OFF: keep distance fog, skip animated fog noise
 
 /* Height fog */
-#define NL_HEIGHT_FOG 0.5
-#define NL_HEIGHT_FOG_START 56.0
-#define NL_HEIGHT_FOG_RANGE 55.0
+#define NL_HEIGHT_FOG 0.42
+#define NL_HEIGHT_FOG_START 58.0
+#define NL_HEIGHT_FOG_RANGE 50.0
 
 /* Sky */
 #define NL_SKY_VOID_FACTOR     0.5
 #define NL_SKY_VOID_DARKNESS   0.3
 #define NL_SKY_RAIN_MIX_FACTOR 0.95
 
-/* Sky colors - realistic atmospheric gradient */
-#define NL_DAWN_ZENITH_COL   vec3(0.18,0.32,0.82)     // deep blue transitioning
-#define NL_DAWN_HORIZON_COL  vec3(3.5,0.65,0.15)      // vivid orange sunrise
-#define NL_DAWN_EDGE_COL     vec3(3.0,1.4,0.5)        // warm golden edge
-#define NL_DAY_ZENITH_COL    vec3(0.12,0.48,2.1)      // deep realistic sky blue
-#define NL_DAY_HORIZON_COL   vec3(0.55,1.1,1.65)      // soft hazy blue horizon
-#define NL_DAY_EDGE_COL      vec3(1.2,1.45,1.65)      // light atmospheric haze
-#define NL_NIGHT_ZENITH_COL  vec3(0.008,0.022,0.11)    // blue, a touch more visible
-#define NL_NIGHT_HORIZON_COL vec3(0.015,0.040,0.15)     // blue horizon
-#define NL_NIGHT_EDGE_COL    vec3(0.020,0.050,0.17)     // blue edge
-#define NL_RAIN_ZENITH_COL   vec3(0.35,0.38,0.42)     // overcast grey
-#define NL_RAIN_HORIZON_COL  vec3(0.48,0.5,0.52)
-#define NL_END_ZENITH_COL    vec3(0.08,0.001,0.1)
-#define NL_END_HORIZON_COL   vec3(0.6,0.02,0.6)
+/* Sky colors - cool daylight blue, violet night that carries the aurora */
+#define NL_DAWN_ZENITH_COL   vec3(0.22,0.26,0.70)     // dusky indigo overhead
+#define NL_DAWN_HORIZON_COL  vec3(2.60,0.78,0.34)     // amber sunrise, tamed red
+#define NL_DAWN_EDGE_COL     vec3(2.85,1.32,0.62)     // soft golden rim
+#define NL_DAY_ZENITH_COL    vec3(0.16,0.44,1.75)     // clear sky blue
+#define NL_DAY_HORIZON_COL   vec3(0.62,1.02,1.52)     // pale haze at the horizon
+#define NL_DAY_EDGE_COL      vec3(1.10,1.32,1.55)     // bright atmospheric edge
+#define NL_NIGHT_ZENITH_COL  vec3(0.014,0.016,0.09)   // deep violet night
+#define NL_NIGHT_HORIZON_COL vec3(0.026,0.030,0.13)   // violet horizon glow
+#define NL_NIGHT_EDGE_COL    vec3(0.034,0.036,0.15)   // faint violet rim
+#define NL_RAIN_ZENITH_COL   vec3(0.30,0.33,0.39)     // overcast slate
+#define NL_RAIN_HORIZON_COL  vec3(0.44,0.47,0.51)
+#define NL_END_ZENITH_COL    vec3(0.07,0.004,0.11)
+#define NL_END_HORIZON_COL   vec3(0.55,0.03,0.58)
 
 /* Rainbow */
 #define NL_RAINBOW
@@ -76,45 +80,57 @@
 #define NL_RAINBOW_RAIN  0.45
 
 /* Ore glow */
-#define NL_GLOW_TEX 2.8
+#define NL_GLOW_TEX 2.4
 //#define NL_GLOW_SHIMMER              // OFF: emissive textures still glow
 #define NL_GLOW_SHIMMER_SPEED 0.9
-#define NL_GLOW_LEAK 0.5
+#define NL_GLOW_LEAK 0.42
 
 /* Waving */
-#define NL_PLANTS_WAVE 0.055
-#define NL_LANTERN_WAVE 0.16
-#define NL_WAVE_SPEED 2.8
-#define NL_WAVE_RANGE 14.0
+#define NL_PLANTS_WAVE 0.048
+#define NL_LANTERN_WAVE 0.13
+#define NL_WAVE_SPEED 2.4
+#define NL_WAVE_RANGE 12.0
 
-/* Water - vivid, realistic reflections */
-#define NL_WATER_TRANSPARENCY 0.94      // clearer, less murky water
-#define NL_WATER_BUMP 0.28              // stronger ripples -> sharper reflection detail
-#define NL_WATER_WAVE_SPEED  0.6        // calmer, more natural wave motion
-#define NL_WATER_TEX_OPACITY 0.18       // let reflections read through more than texture
+/* Water - mirror-leaning surface so the cloud reflection stays the highlight */
+#define NL_WATER_TRANSPARENCY 0.88      // a bit of body so reflections read clearly
+#define NL_WATER_BUMP 0.19              // gentle ripples - hard ripples shred the mirror
+#define NL_WATER_WAVE_SPEED  0.45       // slow swell
+#define NL_WATER_TEX_OPACITY 0.12       // mostly reflection, minimal water texture
 #define NL_WATER_CLOUD_MIRROR 0.42      // per-pixel cloud mirror on water (1.0 = full)
 #define NL_WATER_CLOUD_HEIGHT 192.0     // cloud height used by plane cloud samplers
 #define NL_WATER_CLOUD_REFLECTION_DEPTH 2.0 // clouds appear this many blocks below the surface
 #define NL_WATER_CLOUD_REFL_RIPPLE 0.012 // very subtle swell drift (0.0 = dead-flat mirror)
 #define NL_WATER_WAVE
 //#define NL_WATER_REFL_MASK             // OFF: full reflection instead of patchy masked reflection
-#define NL_WATER_TINT vec3(0.28,0.7,0.88)  // slightly deeper, more natural blue-green
+#define NL_WATER_TINT vec3(0.22,0.58,0.80) // cool teal-blue
 
 /* Underwater */
-#define NL_UNDERWATER_BRIGHTNESS 0.85
-#define NL_CAUSTIC_INTENSITY 2.1
-#define NL_UNDERWATER_WAVE 0.11
-#define NL_UNDERWATER_STREAKS 1.1
-#define NL_UNDERWATER_TINT vec3(0.8,0.95,1.0)
+#define NL_UNDERWATER_BRIGHTNESS 0.95
+#define NL_CAUSTIC_INTENSITY 1.8
+#define NL_UNDERWATER_WAVE 0.09
+#define NL_UNDERWATER_STREAKS 0.9
+#define NL_UNDERWATER_TINT vec3(0.72,0.9,1.0)
 
 /* Custom cloud renderer - always default, no cloud subpack required */
-#define NL_CLOUD_TYPE 4            // 4=custom rounded cellular puffy clouds (default)
+#define NL_CLOUD_TYPE 4            // 4=pixelated layered clouds (default)
+
+/* Pixel clouds (NL_CLOUD_TYPE 4) - also mirrored on water.
+   STEPS is the main performance knob: each step is one hash + one step(). */
+#define NL_PIXEL_CLOUD_STEPS 10       // lattice layers (10 = reference look)
+#define NL_PIXEL_CLOUD_SCALE 5.0      // lattice density on the cloud plane
+#define NL_PIXEL_CLOUD_SPEED 0.06     // drift speed (cells/sec)
+#define NL_PIXEL_CLOUD_COVERAGE 0.7   // hash threshold: higher = fewer clouds
+#define NL_PIXEL_CLOUD_WORLD_SCALE 0.0016 // world-lock: clouds stay put as you walk
+#define NL_PIXEL_CLOUD_OPACITY 0.88   // max cloud opacity
+#define NL_PIXEL_CLOUD_SHADING 0.62   // strength of the internal shaded layer
+#define NL_PIXEL_CLOUD_DAY_COL vec3(1.06,1.04,1.00)   // sunlit cloud tops
+#define NL_PIXEL_CLOUD_NIGHT_COL vec3(0.19,0.22,0.34) // night cloud tops
 
 /* Sky-dome procedural clouds - extra cloud layer drawn on the sky itself.
    OFF by default: type 4 clouds already fill the sky and the dome pass costs
-   an extra cellular lookup on every sky and water-reflection pixel. */
+   an extra lattice lookup on every sky pixel. */
 //#define NL_SKY_CLOUDS
-#define NL_SKY_CLOUD_SPEED 0.09    // drift speed (cell units/sec) - sky and water reflection
+#define NL_SKY_CLOUD_SPEED 0.09    // drift speed (cell units/sec)
 #define NL_SKY_CLOUD_DIR vec2(1.0, 0.35) // wind direction the dome clouds drift along
 #define NL_SKY_CLOUD_OPACITY 0.9   // max cloud opacity
 
@@ -153,16 +169,17 @@
 #define NL_CLOUD3_SHADOW 0.9
 #define NL_CLOUD3_SHADOW_OFFSET 0.3
 
-/* Aurora - night sky aurora borealis */
-#define NL_AURORA 0.85             // procedural aurora (cloud layer + reflections)
-#define NL_AURORA_TEX 1.0          // texture-based volumetric sky aurora (night only)
+/* Aurora - night sky aurora borealis (purple curtain, noise-texture driven) */
+#define NL_AURORA 0.85             // master aurora toggle/strength
+#define NL_AURORA_LAYERS 10        // curtain layers (reference 20) - main cost knob
+#define NL_AURORA_BRIGHTNESS 1.15  // overall curtain brightness
+#define NL_AURORA_COL_LOW vec3(7.0,1.6,13.0)  // deep violet, near layers
+#define NL_AURORA_COL_HIGH vec3(3.4,1.0,9.0)  // magenta-purple, far layers
 #define NL_AURORA_VELOCITY 0.03
 #define NL_AURORA_SCALE 0.04
 #define NL_AURORA_WIDTH 0.18
-#define NL_AURORA_COL1 vec3(0.08,0.62,0.34)  // green band, lower layer
-#define NL_AURORA_COL2 vec3(0.18,0.95,0.72)  // green-cyan band, upper layer
-#define NL_AURORA_TEX_COL1 vec3(0.65,0.48,1.05) // texture aurora: violet base layers
-#define NL_AURORA_TEX_COL2 vec3(0.0,4.5,3.0)    // texture aurora: bright green-cyan curtain
+#define NL_AURORA_COL1 vec3(0.42,0.16,0.78)  // reflected aurora, lower band
+#define NL_AURORA_COL2 vec3(0.66,0.30,1.00)  // reflected aurora, upper band
 #define NL_CLOUD_AURORA_REFLECTION
 
 /* Shooting star */
@@ -186,13 +203,13 @@
 #define NL_SUN_TILT        45.0
 #define NL_MOON_TILT       45.0
 
-/* Godrays - strong volumetric light shafts */
-#define NL_GODRAY 1.2
+/* Godrays - subtle shafts, kept cheap */
+#define NL_GODRAY 0.9
 
 /* Ground reflection - RTX-style mirror reflection on smooth blocks */
 //#define NL_GROUND_REFL                // OFF: water/cloud reflection remains enabled
-#define NL_GROUND_RAIN_WETNESS 1.6     // strong puddle reflections while raining
-#define NL_GROUND_RAIN_PUDDLES 0.9     // more scattered, natural puddle shapes
+#define NL_GROUND_RAIN_WETNESS 1.3     // wet sheen while raining
+#define NL_GROUND_RAIN_PUDDLES 0.75    // puddle coverage
 
 /* PBR block reflection (from "block reflection V3") - fragment-stage
    normal-mapped, TBN-distorted, Cook-Torrance mirror on smooth blocks */
@@ -211,13 +228,13 @@
 //#define NL_RAIN_REFL_STRENGTH         // OFF: use lightweight built-in rain wetness
 
 /* Entity */
-#define NL_ENTITY_BRIGHTNESS     0.68
-#define NL_ENTITY_EDGE_HIGHLIGHT 0.42
+#define NL_ENTITY_BRIGHTNESS     0.62
+#define NL_ENTITY_EDGE_HIGHLIGHT 0.34
 
-/* Weather - realistic rain look */
-#define NL_WEATHER_SPECK 0.5             // less glossy/artificial speck highlight
-#define NL_WEATHER_RAIN_SLANT 5.0        // more natural wind-driven slant
-#define NL_WEATHER_PARTICLE_SIZE 0.85    // thinner, more realistic raindrops
+/* Weather - thin, wind-driven rain */
+#define NL_WEATHER_SPECK 0.42            // matte speck, no plastic highlight
+#define NL_WEATHER_RAIN_SLANT 4.2        // wind slant
+#define NL_WEATHER_PARTICLE_SIZE 0.78    // thin raindrops
 
 /* Lava */
 //#define NL_LAVA_NOISE                 // OFF: animated lava texture remains visible
@@ -236,6 +253,11 @@
   #undef NL_CLOUDY_FOG
   #undef NL_ENTITY_EDGE_HIGHLIGHT
   #undef NL_PBR_BLOCK_REFL
+  // halve the two per-pixel loops: aurora curtain and cloud lattice
+  #undef NL_AURORA_LAYERS
+  #define NL_AURORA_LAYERS 5
+  #undef NL_PIXEL_CLOUD_STEPS
+  #define NL_PIXEL_CLOUD_STEPS 6
 #endif
 
 #ifdef NO_WAVE_NO_FOG
