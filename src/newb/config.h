@@ -205,7 +205,9 @@
 #define NL_MOON_TILT       45.0
 
 /* Godrays - subtle shafts, kept cheap */
-#define NL_GODRAY 0.9
+#define NL_GODRAY 0.25 // [toggle] 0.1 subtle ~ 0.8 strong (main pack wala)
+#define NL_GODRAY_MULTIPLICATOR 2.0 // final tez (Download/fog.h wala, 1.0 normal)
+#define NL_GODRAY_SENSITIVITY   0.03 // halke rays threshold (kam = zyada rays)
 
 /* Ground reflection - RTX-style mirror reflection on smooth blocks */
 //#define NL_GROUND_REFL                // OFF: water/cloud reflection remains enabled
