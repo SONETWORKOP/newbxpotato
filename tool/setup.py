@@ -1,11 +1,12 @@
 import os
+import hashlib
 import zipfile
 import signal
 import platform
 import shutil
 from functools import partial
 from threading import Event
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 from rich.progress import (
     BarColumn,
     DownloadColumn,
@@ -13,7 +14,14 @@ from rich.progress import (
     TextColumn,
     TransferSpeedColumn,
 )
-from util import load_conf, save_conf, NS_DEV_MAT_SRC_URL, NS_DEV_SHADERC_URL_PREFIX
+from util import (
+    load_conf,
+    save_conf,
+    NS_DEV_MAT_SRC_SHA256,
+    NS_DEV_MAT_SRC_URL,
+    NS_DEV_SHADERC_ASSETS,
+    NS_DEV_SHADERC_URL_PREFIX,
+)
 
 done_event = Event()
 
@@ -35,43 +43,56 @@ progress = Progress(
 )
 
 
-def _download_file(url: str, path: str) -> None:
-    filename = url.split("/")[-1]
+def _download_file(url: str, path: str, filename: str, sha256: str | None = None) -> None:
     task_id = progress.add_task("download", filename=filename, start=False)
-    response = urlopen(url)
-    progress.update(task_id, total=int(response.info()["Content-length"]))
-    with open(path, "wb") as dest_file:
-        progress.start_task(task_id)
-        for data in iter(partial(response.read, 32768), b""):
-            dest_file.write(data)
-            progress.update(task_id, advance=len(data))
-            if done_event.is_set():
-                return
+    request = Request(
+        url,
+        headers={"Accept": "application/octet-stream", "User-Agent": "newb-pack-builder"},
+    )
+    temp_path = path + ".download"
+    digest = hashlib.sha256()
+    try:
+        with urlopen(request) as response, open(temp_path, "wb") as dest_file:
+            content_length = response.info().get("Content-length")
+            progress.update(task_id, total=int(content_length) if content_length else None)
+            progress.start_task(task_id)
+            for data in iter(partial(response.read, 32768), b""):
+                dest_file.write(data)
+                digest.update(data)
+                progress.update(task_id, advance=len(data))
+                if done_event.is_set():
+                    raise KeyboardInterrupt
+        if sha256 is not None and digest.hexdigest() != sha256:
+            raise ValueError(f"Checksum mismatch for {filename}")
+        os.replace(temp_path, path)
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 def get_shaderc_url(data_path: str, os_name: str, arch: str):
-    shaderc_url = NS_DEV_SHADERC_URL_PREFIX
     shaderc_path = os.path.join(data_path, "shaderc")
 
     if os_name == 'Windows':
-        shaderc_url += "win-x64.exe"
+        shaderc_asset = "win-x64.exe"
         shaderc_path += ".exe"
     elif os_name == "Darwin":
-        shaderc_url += "osx-x64"
+        shaderc_asset = "osx-x64"
     elif os_name == "Linux" or os_name == "Android":
         if arch == 'x86_64':
-            shaderc_url += "linux-x64"
+            shaderc_asset = "linux-x64"
         elif arch in ['aarch64']:
-            shaderc_url += "android-arm64"
-        elif arch in ['armv8l', 'armv8l']:
-            shaderc_url += "android-arm"
+            shaderc_asset = "android-arm64"
+        elif arch in ['armv7l', 'armv8l']:
+            shaderc_asset = "android-arm"
         else:
             progress.console.print("No shaderc version found for", arch, style='red')
             return None
     else:
         progress.console.print("Unable to determine platform", os_name, style='red')
         return None
-    return (shaderc_url, shaderc_path)
+    shaderc_url = NS_DEV_SHADERC_URL_PREFIX + NS_DEV_SHADERC_ASSETS[shaderc_asset]
+    return (shaderc_url, shaderc_path, "shaderc-" + shaderc_asset)
 
 
 def check_and_apply_termux_fix():
@@ -98,10 +119,10 @@ def run(args):
     shaderc_details = get_shaderc_url(data_path, os_name, arch)
     if shaderc_details is None:
         exit(1)
-    shaderc_url, shaderc_path = shaderc_details
+    shaderc_url, shaderc_path, shaderc_filename = shaderc_details
 
     if args.reset:
-        shutil.rmtree(data_path)
+        shutil.rmtree(data_path, ignore_errors=True)
 
     if not os.path.exists(data_path):
         os.mkdir(data_path)
@@ -115,22 +136,34 @@ def run(args):
     if conf.get("shaderc_url") != shaderc_url and os.path.exists(shaderc_path):
         os.remove(shaderc_path)
     if conf.get("mat_src_url") != NS_DEV_MAT_SRC_URL:
-        shutil.rmtree(mat_path)
+        shutil.rmtree(mat_path, ignore_errors=True)
 
     with progress:
         if not os.path.exists(shaderc_path):
             progress.console.print("Downloading shaderc")
-            _download_file(shaderc_url, shaderc_path)
+            _download_file(shaderc_url, shaderc_path, shaderc_filename)
             os.chmod(shaderc_path, 0o755)
 
         test_mat = os.path.join(mat_path, "Sky.material.json")
         if not os.path.exists(test_mat):
             progress.console.print("Downloading source materials")
             mat_filename = os.path.join(data_path, 'materials.zip')
-            _download_file(NS_DEV_MAT_SRC_URL, mat_filename)
+            _download_file(
+                NS_DEV_MAT_SRC_URL,
+                mat_filename,
+                "src-materials-1.26.50.zip",
+                NS_DEV_MAT_SRC_SHA256,
+            )
             with zipfile.ZipFile(mat_filename, 'r') as zip_ref:
                 zip_ref.extractall(mat_path)
             os.remove(mat_filename)
+            # flatten single top-level folder (GitHub codeload archives)
+            entries = os.listdir(mat_path)
+            if len(entries) == 1 and os.path.isdir(os.path.join(mat_path, entries[0])):
+                inner = os.path.join(mat_path, entries[0])
+                for name in os.listdir(inner):
+                    shutil.move(os.path.join(inner, name), os.path.join(mat_path, name))
+                os.rmdir(inner)
 
     conf["arch"] = arch
     conf["os_name"] = os_name
@@ -140,4 +173,3 @@ def run(args):
     save_conf(conf)
 
     progress.console.print("[bold green]All done!")
-

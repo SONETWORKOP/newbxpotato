@@ -4,9 +4,18 @@ import pickle
 import platform
 
 CONF_FILE = "tool/data/.builder.pkl"
+NS_DEV_ASSET_URL_PREFIX = "https://api.github.com/repos/devendrn/newb-shader/releases/assets/"
 NS_DEV_RELEASE = "https://github.com/devendrn/newb-shader/releases/download/dev/"
-NS_DEV_MAT_SRC_URL = "https://github.com/SONETWORKOP/newbxpotato/releases/download/dev/src-materials-1.26.50.zip"
-NS_DEV_SHADERC_URL_PREFIX = NS_DEV_RELEASE + "shaderc-"
+NS_DEV_MAT_SRC_URL = "https://github.com/mcpebd/serialized-materials/archive/refs/heads/main.zip"
+NS_DEV_MAT_SRC_SHA256 = None  # codeload zips are regenerated (hash unstable) - skip check
+NS_DEV_SHADERC_ASSETS = {
+    "android-arm": "186072253",
+    "android-arm64": "186072261",
+    "linux-x64": "186072267",
+    "osx-x64": "186072230",
+    "win-x64.exe": "186072277",
+}
+NS_DEV_SHADERC_URL_PREFIX = NS_DEV_ASSET_URL_PREFIX
 SHADERC_PATH = os.path.join('tool', 'data', 'shaderc')
 if os.name == 'nt':
     SHADERC_PATH += ".exe"
