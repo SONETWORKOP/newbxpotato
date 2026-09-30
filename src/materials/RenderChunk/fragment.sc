@@ -11,60 +11,8 @@ uniform vec4 CameraPosition;
 uniform vec4 ViewPositionAndTime;
 uniform vec4 FogColor;
 
-/*
-  Water cloud mirror.
-
-  The Clouds material projects its pixel lattice with p.xz*0.8/p.y, i.e. purely
-  by direction. A true mirror therefore only needs the *reflected direction* -
-  no projection onto a cloud plane. Sampling by direction keeps the reflected
-  clouds matching the sky at any camera height and any distance.
-*/
-vec4 waterCloudReflection(
-  vec3 surfacePos, vec3 viewDir, float rain, float dayFactor, vec3 horizonCol, highp float t
-) {
-  vec3 V = normalize(viewDir);
-
-  // Flat mirror. Perturbing the normal before reflect() looks correct on paper
-  // but the plane projection divides by reflDir.y, so a tiny tilt near the
-  // horizon is amplified by ~1/y^2 and tears the clouds into warping blobs.
-  vec3 reflDir = vec3(-V.x, V.y, -V.z);
-  // below the horizon there is no sky to mirror (also true when underwater,
-  // where the reflected ray points down)
-  if (reflDir.y <= 0.004) return vec4_splat(0.0);
-
-  // Surface motion, applied in plane-uv space where it is a bounded
-  // translation: the reflection drifts like a slow swell instead of stretching.
-  vec2 wobble = vec2(
-    sin(surfacePos.x*0.09 + 0.30*t) + sin(surfacePos.z*0.06 - 0.21*t),
-    cos(surfacePos.z*0.08 + 0.26*t) + cos(surfacePos.x*0.05 - 0.18*t)
-  );
-  wobble *= 0.5*NL_WATER_CLOUD_REFL_RIPPLE;
-
-  // Depth cue: shift the sampled cloud image sideways as if the mirror sat
-  // NL_WATER_CLOUD_REFLECTION_DEPTH blocks below the surface. A translation,
-  // never a scale, so reflected clouds keep the same size as the real ones.
-  vec2 depthShift = clamp(
-    NL_WATER_CLOUD_REFLECTION_DEPTH*reflDir.xz/max(reflDir.y, 0.08),
-    -vec2_splat(64.0), vec2_splat(64.0)
-  );
-
-  // renderPixelClouds builds uv as dir.xz*(0.8/dir.y), so pre-multiplying the
-  // wobble by dir.y/0.8 lands it as an exact, angle-independent uv offset.
-  vec3 sampleDir = reflDir;
-  sampleDir.xz += wobble*max(reflDir.y, 0.025)/0.8;
-
-  vec4 clouds = renderPixelClouds(
-    sampleDir, CameraPosition.xz + depthShift, t, rain, dayFactor, horizonCol
-  );
-
-  // water is more mirror-like at grazing angles
-  float fresnel = calculateFresnel(V.y, 0.02);
-  clouds.a *= NL_WATER_CLOUD_MIRROR*mix(0.55, 1.0, sqrt(fresnel));
-  clouds.rgb *= 1.0 - 0.45*rain;
-  // distance falloff is left to the fog blend below, which already matches the
-  // sky - an extra fade here makes far reflections disappear
-  return clouds;
-}
+// (Water cloud-mirror HATAYA - paani me clouds reflection nahi.
+// Sirf procedural aurora aks rahega neeche.)
 
 void main() {
   #if defined(DEPTH_ONLY_OPAQUE) || defined(DEPTH_ONLY) || defined(INSTANCING)
@@ -104,27 +52,28 @@ void main() {
   if (v_extra.b > 0.9) {
     diffuse.rgb += v_refl.rgb*v_refl.a;
 
-    #ifndef NL_NO_WATER_CLOUD_REFL
-      vec3 surfacePos = v_position+CameraPosition.xyz;
-
-      // rebuild the sky palette so the mirrored clouds are shaded with the
-      // same horizon tint the Clouds material uses (cheap: only mix() ops)
-      nl_environment wenv;
-      wenv.end = false;
-      wenv.nether = false;
-      wenv.underwater = false;
-      wenv.rainFactor = v_reflPbr.w;
-      wenv.dayFactor = v_reflSun.w;
-      wenv.sunDir = v_reflSun.xyz;
-      wenv.moonDir = -v_reflSun.xyz;
-      wenv.fogCol = FogColor.rgb;
-      nl_skycolor wskycol = nlOverworldSkyColors(wenv);
-
-      vec4 cloudReflection = waterCloudReflection(
-        surfacePos, v_reflPbr.xyz, wenv.rainFactor, wenv.dayFactor,
-        wskycol.horizonEdge, ViewPositionAndTime.w
-      );
-      diffuse.rgb = mix(diffuse.rgb,cloudReflection.rgb,cloudReflection.a);
+    // aurora-only mirror (clouds hataye) - raat me paani par purple glow.
+    // Procedural renderAurora (bina texture), sky wale purple rang me.
+    #ifdef NL_AURORA
+      {
+        vec3 aurV = normalize(v_reflPbr.xyz);
+        vec3 aurReflDir = vec3(-aurV.x, aurV.y, -aurV.z);
+        if (aurReflDir.y > 0.004) {
+          float aurVdotU = clamp(aurReflDir.y, 0.0, 1.0);
+          float aurNight = 1.0 - smoothstep(-0.02, 0.32, v_reflSun.w);
+          if (aurNight > 0.001 && aurVdotU > 0.15) {
+            vec3 aurP = aurReflDir;
+            aurP.xz /= max(0.0001, aurP.y);
+            vec4 aur = renderAurora(aurP.xyy, ViewPositionAndTime.w, v_reflPbr.w, FogColor.rgb);
+            #ifdef NL_WATER_AURORA_MIRROR
+              float auroraAmt = NL_WATER_AURORA_MIRROR;
+            #else
+              float auroraAmt = 0.55;
+            #endif
+            diffuse.rgb += aur.rgb*aur.a*aurNight*auroraAmt;
+          }
+        }
+      }
     #endif
   } else if (v_refl.a > 0.0) {
     // reflective effect - only on xz plane (ground / flat smooth blocks)

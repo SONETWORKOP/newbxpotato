@@ -66,9 +66,9 @@
 #define NL_DAY_ZENITH_COL    vec3(0.16,0.44,1.75)     // clear sky blue
 #define NL_DAY_HORIZON_COL   vec3(0.62,1.02,1.52)     // pale haze at the horizon
 #define NL_DAY_EDGE_COL      vec3(1.10,1.32,1.55)     // bright atmospheric edge
-#define NL_NIGHT_ZENITH_COL  vec3(0.014,0.016,0.09)   // deep violet night
-#define NL_NIGHT_HORIZON_COL vec3(0.026,0.030,0.13)   // violet horizon glow
-#define NL_NIGHT_EDGE_COL    vec3(0.034,0.036,0.15)   // faint violet rim
+#define NL_NIGHT_ZENITH_COL  vec3(0.016,0.032,0.105)   // deep navy blue upar (gallery image)
+#define NL_NIGHT_HORIZON_COL vec3(0.070,0.120,0.240)   // steel-blue horizon glow
+#define NL_NIGHT_EDGE_COL    vec3(0.085,0.140,0.260)   // soft blue rim
 #define NL_RAIN_ZENITH_COL   vec3(0.30,0.33,0.39)     // overcast slate
 #define NL_RAIN_HORIZON_COL  vec3(0.44,0.47,0.51)
 #define NL_END_ZENITH_COL    vec3(0.07,0.004,0.11)
@@ -100,6 +100,7 @@
 #define NL_WATER_CLOUD_HEIGHT 192.0     // cloud height used by plane cloud samplers
 #define NL_WATER_CLOUD_REFLECTION_DEPTH 2.0 // clouds appear this many blocks below the surface
 #define NL_WATER_CLOUD_REFL_RIPPLE 0.012 // very subtle swell drift (0.0 = dead-flat mirror)
+#define NL_WATER_AURORA_MIRROR 0.55     // paani me aurora aks (clouds nahi, sirf purple glow)
 #define NL_WATER_WAVE
 //#define NL_WATER_REFL_MASK             // OFF: full reflection instead of patchy masked reflection
 #define NL_WATER_TINT vec3(0.22,0.58,0.80) // cool teal-blue

@@ -1,6 +1,6 @@
 name = "Newbxpotato"
 version = [1, 0, 1]
-min_supported_mc_version = [1, 26, 30]
+min_supported_mc_version = [1, 26, 50]
 description = '''
 §c%w
 §7- Lightweight custom clouds, aurora, waves and reflections!
