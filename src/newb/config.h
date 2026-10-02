@@ -21,10 +21,10 @@
 /* Lighting - moderate directional light with soft ambient fill.
    Lower sunlight + higher ambient than a BSL-style grade: shadows stay
    visible instead of crushing to black on a phone screen in daylight. */
-#define NL_SUNLIGHT_INTENSITY   3.6    // moderate direct sun
+#define NL_SUNLIGHT_INTENSITY   4.2    // tez dhoop (bright lighting)
 #define NL_TORCHLIGHT_INTENSITY 1.35   // warm but not blown-out torches
 #define NL_SHADOW_INTENSITY     1.25   // softer shadows, keeps detail in the dark
-#define NL_MIN_LIGHTING_BOOST   1.12   // a little ambient fill so caves stay readable
+#define NL_MIN_LIGHTING_BOOST   1.35   // bright ambient fill, andhera kam
 //#define NL_BLINKING_TORCH
 //#define NL_CLOUD_SHADOW              // OFF: expensive noise on chunk vertices
 
@@ -43,10 +43,10 @@
 #define NL_NETHER_TORCH_COL     vec3(1.0,0.52,0.2)
 #define NL_END_TORCH_COL        vec3(0.96,0.58,0.34)
 
-/* Fog - light touch so render distance stays visible on mobile */
-#define NL_FOG 1.12
-#define NL_MIST_DENSITY 0.3
-#define NL_RAIN_MIST_OPACITY 0.36
+/* Fog - ghana kohra taaki door dhundhala lage */
+#define NL_FOG 1.25
+#define NL_MIST_DENSITY 0.5
+#define NL_RAIN_MIST_OPACITY 0.5
 //#define NL_CLOUDY_FOG                // OFF: keep distance fog, skip animated fog noise
 
 /* Height fog */
@@ -66,9 +66,9 @@
 #define NL_DAY_ZENITH_COL    vec3(0.16,0.44,1.75)     // clear sky blue
 #define NL_DAY_HORIZON_COL   vec3(0.62,1.02,1.52)     // pale haze at the horizon
 #define NL_DAY_EDGE_COL      vec3(1.10,1.32,1.55)     // bright atmospheric edge
-#define NL_NIGHT_ZENITH_COL  vec3(0.016,0.032,0.105)   // deep navy blue upar (gallery image)
-#define NL_NIGHT_HORIZON_COL vec3(0.070,0.120,0.240)   // steel-blue horizon glow
-#define NL_NIGHT_EDGE_COL    vec3(0.085,0.140,0.260)   // soft blue rim
+#define NL_NIGHT_ZENITH_COL  vec3(0.045,0.025,0.115)   // purple night upar
+#define NL_NIGHT_HORIZON_COL vec3(0.100,0.085,0.230)   // purple horizon glow
+#define NL_NIGHT_EDGE_COL    vec3(0.110,0.100,0.250)   // soft purple rim
 #define NL_RAIN_ZENITH_COL   vec3(0.30,0.33,0.39)     // overcast slate
 #define NL_RAIN_HORIZON_COL  vec3(0.44,0.47,0.51)
 #define NL_END_ZENITH_COL    vec3(0.07,0.004,0.11)
@@ -100,7 +100,7 @@
 #define NL_WATER_CLOUD_HEIGHT 192.0     // cloud height used by plane cloud samplers
 #define NL_WATER_CLOUD_REFLECTION_DEPTH 2.0 // clouds appear this many blocks below the surface
 #define NL_WATER_CLOUD_REFL_RIPPLE 0.012 // very subtle swell drift (0.0 = dead-flat mirror)
-#define NL_WATER_AURORA_MIRROR 0.55     // paani me aurora aks (clouds nahi, sirf purple glow)
+#define NL_WATER_AURORA_MIRROR 0.9      // paani me aurora aks tez (clouds nahi)
 #define NL_WATER_WAVE
 //#define NL_WATER_REFL_MASK             // OFF: full reflection instead of patchy masked reflection
 #define NL_WATER_TINT vec3(0.22,0.58,0.80) // cool teal-blue
@@ -183,10 +183,10 @@
 #define NL_AURORA_COL2 vec3(0.66,0.30,1.00)  // reflected aurora, upper band
 #define NL_CLOUD_AURORA_REFLECTION
 
-/* Shooting star */
-//#define NL_SHOOTING_STAR             // OFF: avoids full-sky animated streak math
-#define NL_SHOOTING_STAR_PERIOD 8.0
-#define NL_SHOOTING_STAR_DELAY 24.0
+/* Shooting star - raat me 6 alag directions, har 5 sec */
+#define NL_SHOOTING_STAR 1.0            // ON: night sky streaks
+#define NL_SHOOTING_STAR_PERIOD 5.0     // har 5 sec naya set
+#define NL_SHOOTING_STAR_DELAY 0.0      // koi wait nahi, lagatar
 
 /* Galaxy - animated stars at night */
 //#define NL_GALAXY_STARS              // OFF: vanilla stars remain, skip 3D noise

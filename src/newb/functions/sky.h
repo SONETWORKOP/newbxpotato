@@ -265,11 +265,13 @@ vec3 nlRenderShootingStar(vec3 viewDir, vec3 FOG_COLOR, float t) {
   float t1 = 1.0-t0;
   t1 *= t1; t1 *= t1; t1 *= t1;
 
-  // four simultaneous streaks from different directions
+  // SIX simultaneous streaks, alag-alag directions (seed se rotation/pos)
   float s = nlShootingStarStreak(viewDir, t, t0, t1, h0, 0.0);
   s += nlShootingStarStreak(viewDir, t, t0, t1, h0, 1.0);
   s += nlShootingStarStreak(viewDir, t, t0, t1, h0, 2.0);
   s += nlShootingStarStreak(viewDir, t, t0, t1, h0, 3.0);
+  s += nlShootingStarStreak(viewDir, t, t0, t1, h0, 4.0);
+  s += nlShootingStarStreak(viewDir, t, t0, t1, h0, 5.0);
 
   s *= max(1.0-FOG_COLOR.r-FOG_COLOR.g-FOG_COLOR.b, 0.0); // fade out during day
   return s*vec3(0.8, 0.9, 1.0);
