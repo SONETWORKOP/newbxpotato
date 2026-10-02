@@ -12,7 +12,7 @@
    midtones stay where vanilla put them, so terrain textures keep their detail. */
 #define NL_TONEMAP_TYPE 3              // Extended Reinhard - natural highlight rolloff
 #define NL_GAMMA 1.14                  // mild contrast, keeps shadow detail readable
-#define NL_EXPOSURE 1.05               // near-neutral; brightness comes from sunlight
+#define NL_EXPOSURE 1.15               // bright day + sunrise (pehle 1.05)
 #define NL_SATURATION 1.18             // gentle lift - colorful without going neon
 //#define NL_TINT                      // OFF
 #define NL_TINT_LOW  vec3(0.3,0.5,1.4)
@@ -34,7 +34,7 @@
 
 /* Sun/moon - warm day, purple-leaning night to match the aurora */
 #define NL_DAWN_SUNLIGHT_COL   vec3(1.14,0.60,0.26)   // soft amber sunrise
-#define NL_NOON_SUNLIGHT_COL   vec3(1.05,1.01,0.92)   // near-neutral daylight
+#define NL_NOON_SUNLIGHT_COL   vec3(1.15,1.10,1.00)   // bright daylight (pehle 1.05,1.01,0.92)
 #define NL_NIGHT_MOONLIGHT_COL vec3(0.06,0.07,0.24)   // violet-tinted moonlight
 
 /* Torch */
@@ -44,9 +44,9 @@
 #define NL_END_TORCH_COL        vec3(0.96,0.58,0.34)
 
 /* Fog - ghana kohra taaki door dhundhala lage */
-#define NL_FOG 1.25
-#define NL_MIST_DENSITY 0.5
-#define NL_RAIN_MIST_OPACITY 0.5
+#define NL_FOG 1.6
+#define NL_MIST_DENSITY 0.85
+#define NL_RAIN_MIST_OPACITY 0.7
 //#define NL_CLOUDY_FOG                // OFF: keep distance fog, skip animated fog noise
 
 /* Height fog */
@@ -61,8 +61,8 @@
 
 /* Sky colors - cool daylight blue, violet night that carries the aurora */
 #define NL_DAWN_ZENITH_COL   vec3(0.22,0.26,0.70)     // dusky indigo overhead
-#define NL_DAWN_HORIZON_COL  vec3(2.60,0.78,0.34)     // amber sunrise, tamed red
-#define NL_DAWN_EDGE_COL     vec3(2.85,1.32,0.62)     // soft golden rim
+#define NL_DAWN_HORIZON_COL  vec3(3.00,0.90,0.42)     // bright amber sunrise
+#define NL_DAWN_EDGE_COL     vec3(3.20,1.50,0.70)     // bright golden rim
 #define NL_DAY_ZENITH_COL    vec3(0.16,0.44,1.75)     // clear sky blue
 #define NL_DAY_HORIZON_COL   vec3(0.62,1.02,1.52)     // pale haze at the horizon
 #define NL_DAY_EDGE_COL      vec3(1.10,1.32,1.55)     // bright atmospheric edge
@@ -209,8 +209,8 @@
 #define NL_GODRAY_MULTIPLICATOR 2.0 // final tez (Download/fog.h wala, 1.0 normal)
 #define NL_GODRAY_SENSITIVITY   0.03 // halke rays threshold (kam = zyada rays)
 
-/* Ground reflection - RTX-style mirror reflection on smooth blocks */
-//#define NL_GROUND_REFL                // OFF: water/cloud reflection remains enabled
+/* Ground reflection - geeli/chikni zameen par aasmaan ka aks (ON) */
+#define NL_GROUND_REFL 1.0            // 0.2 halka ~ 1.0 tez mirror
 #define NL_GROUND_RAIN_WETNESS 1.3     // wet sheen while raining
 #define NL_GROUND_RAIN_PUDDLES 0.75    // puddle coverage
 

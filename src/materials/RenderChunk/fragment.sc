@@ -70,7 +70,8 @@ void main() {
             #else
               float auroraAmt = 0.55;
             #endif
-            diffuse.rgb += aur.rgb*aur.a*aurNight*auroraAmt;
+            // rgb me shape+mask pehle se hai - aur.a se dobara multiply nahi (double-dim bug)
+            diffuse.rgb += aur.rgb*aurNight*auroraAmt;
           }
         }
       }
