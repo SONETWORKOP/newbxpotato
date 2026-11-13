@@ -1,6 +1,6 @@
 name = "Newbxpotato"
-version = [1, 0, 1]
-min_supported_mc_version = [1, 26, 50]
+version = [1, 0, 2]
+min_supported_mc_version = [1, 26, 60]
 description = '''
 §c%w
 §7- Lightweight custom clouds, aurora, waves and reflections!
@@ -10,7 +10,7 @@ description = '''
 authors = ["Shivam"]
 url = ""
 uuid = "27b48602-932b-4de3-8dec-fa521e29d300" # Newbxpotato pack UUID
-materials = ["Sky", "RenderChunk", "Actor", "ActorGlint", "EndSky", "Clouds", "SunMoon", "Weather", "ItemInHandTextured", "ItemInHandColor", "ItemInHandColorGlint", "Stars"]
+materials = ["Sky", "RenderChunk", "Actor", "ActorGlint", "ActorMultiTexture", "EndSky", "Clouds", "SunMoon", "Weather", "ItemInHandTextured", "ItemInHandColor", "ItemInHandColorGlint", "Stars"]
 
 [info] 
 copyright = '''

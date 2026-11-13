@@ -71,4 +71,27 @@ nl_environment nlDetectEnvironment(float DIMENSION_ID, float TIME_OF_DAY, float 
   return env;
 }
 
+bool detectEndFog(vec3 FOG_COLOR) {
+  return FOG_COLOR.r==FOG_COLOR.b && (FOG_COLOR.r-FOG_COLOR.g>0.24 || (FOG_COLOR.g==0.0 && FOG_COLOR.r>0.1));
+}
+
+bool detectNetherFog(vec3 FOG_COLOR, vec2 FOG_CONTROL) {
+  float expectedFogX = 0.029 + (0.09*FOG_CONTROL.y*FOG_CONTROL.y);
+  bool netherFogCtrl = (FOG_CONTROL.x<0.14 && abs(FOG_CONTROL.x-expectedFogX) < 0.02);
+  bool netherFogCol = (FOG_COLOR.r+FOG_COLOR.g)>0.0;
+  bool underLava = FOG_CONTROL.x == 0.0 && FOG_COLOR.b == 0.0 && FOG_COLOR.g < 0.18 && FOG_COLOR.r-FOG_COLOR.g > 0.1;
+  return (netherFogCtrl && netherFogCol) || underLava;
+}
+
+nl_environment nlDetectEnvironmentFog(float TIME_OF_DAY, vec3 FOG_COLOR, vec3 FOG_CONTROL) {
+  nl_environment env;
+  env.end = detectEndFog(FOG_COLOR);
+  env.nether = detectNetherFog(FOG_COLOR, FOG_CONTROL.xy);
+  env.underwater = detectUnderwater(FOG_COLOR, FOG_CONTROL.xy);
+  env.rainFactor = detectRain(FOG_CONTROL.xyz);
+  env.fogCol = FOG_COLOR;
+  env = calculateSunParams(env, TIME_OF_DAY, 0.0);
+  return env;
+}
+
 #endif
